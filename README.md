@@ -11,3 +11,13 @@
   ),
   ""
 )
+
+
+=IFERROR(
+  IF(
+    INDEX(Sheet2!J:J, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!C:C=C2), 0)) > J2,
+    INDEX(Sheet2!J:J, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!C:C=C2), 0)),
+    J2
+  ),
+  J2
+)
