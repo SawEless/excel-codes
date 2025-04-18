@@ -33,3 +33,16 @@
   )
 )
 
+=LET(
+  appID, B2,
+  drScenion, C2,
+  rev1, J2,
+  rev2, XLOOKUP(1, (Sheet2!B:B=appID)*(Sheet2!C:C=drScenion), Sheet2!J:J, ""),
+  rto2, XLOOKUP(1, (Sheet2!B:B=appID)*(Sheet2!C:C=drScenion), Sheet2!U:U, ""),
+  IF(
+    OR(rev1="", rev2=""),
+    IF(rev1="", rto2, M2),
+    IF(rev2 > rev1, rto2, M2)
+  )
+)
+
