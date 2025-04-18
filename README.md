@@ -9,6 +9,16 @@
   )
 )
 
+=IF(
+  OR(I2="", INDEX(Sheet2!I:I, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!E:E=E2), 0))=""),
+  IF(I2="", INDEX(Sheet2!I:I, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!E:E=E2), 0)), I2),
+  IF(
+    INDEX(Sheet2!I:I, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!E:E=E2), 0)) > I2,
+    INDEX(Sheet2!I:I, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!E:E=E2), 0)),
+    I2
+  )
+)
+
 
 
 =IFERROR(
