@@ -21,3 +21,15 @@
   ),
   J2
 )
+
+
+=IF(
+  OR(J2="", XLOOKUP(B2, Sheet2!B:B, Sheet2!J:J, "") = ""),
+  IF(J2="", XLOOKUP(B2, Sheet2!B:B, Sheet2!U:U, ""), M2),
+  IF(
+    XLOOKUP(B2, Sheet2!B:B, Sheet2!J:J, "") > J2,
+    XLOOKUP(B2, Sheet2!B:B, Sheet2!U:U, ""),
+    M2
+  )
+)
+
