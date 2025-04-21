@@ -1,5 +1,24 @@
 # excel-codes
 =IF(
+  AND(I2="", INDEX(PLAN_OLD!I:I, MATCH(1, (PLAN_OLD!B:B=B2)*(PLAN_OLD!E:E=E2), 0))=""),
+  J2,
+  IF(
+    I2="",
+    INDEX(PLAN_OLD!J:J, MATCH(1, (PLAN_OLD!B:B=B2)*(PLAN_OLD!E:E=E2), 0)),
+    IF(
+      INDEX(PLAN_OLD!I:I, MATCH(1, (PLAN_OLD!B:B=B2)*(PLAN_OLD!E:E=E2), 0))="",
+      J2,
+      IF(
+        INDEX(PLAN_OLD!I:I, MATCH(1, (PLAN_OLD!B:B=B2)*(PLAN_OLD!E:E=E2), 0)) > I2,
+        INDEX(PLAN_OLD!J:J, MATCH(1, (PLAN_OLD!B:B=B2)*(PLAN_OLD!E:E=E2), 0)),
+        J2
+      )
+    )
+  )
+)
+
+
+=IF(
   AND(I2="", INDEX(Sheet2!I:I, MATCH(1, (Sheet2!B:B=B2)*(Sheet2!E:E=E2), 0))=""),
   "",
   IF(
