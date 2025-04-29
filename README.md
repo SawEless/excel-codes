@@ -1,77 +1,93 @@
 import pandas as pd
 
-new_df = pd.read_excel("new_sheet.xlsx")
-old_df = pd.read_excel("old_sheet.xlsx")
+# 1) Load the two sheets from one Excel file
+excel_path = "your_file.xlsx"
+new_df = pd.read_excel(excel_path, sheet_name="Plan")       # new sheet
+old_df = pd.read_excel(excel_path, sheet_name="Plan Old")   # old sheet
 
-new_df['Recovery Plan'] = pd.to_datetime(new_df['Recovery Plan'], errors='coerce')
-old_df['Recovery Plan'] = pd.to_datetime(old_df['Recovery Plan'], errors='coerce')
+# 2) Ensure Recovery Plan is datetime
+new_df["Recovery Plan"] = pd.to_datetime(new_df["Recovery Plan"], errors="coerce")
+old_df["Recovery Plan"] = pd.to_datetime(old_df["Recovery Plan"], errors="coerce")
 
-merged = pd.merge(new_df, old_df, on=['Code', 'DR Scenerio'], suffixes=('_new', '_old'), how='outer')
+# 3) Outer merge with an indicator to know where each row came from
+merged = pd.merge(
+    new_df, old_df,
+    on=["Code", "DR Scenerio"],
+    how="outer",
+    suffixes=("_new", "_old"),
+    indicator=True
+)
 
-def resolve_row(row):
-    rp_new = row['Recovery Plan_new']
-    rp_old = row['Recovery Plan_old']
-    
-    if pd.isna(rp_new) and pd.notna(row['RTE_old']):
+# 4) Define the per-row resolution logic
+def resolve_row(r):
+    rp_new = r["Recovery Plan_new"]
+    rp_old = r["Recovery Plan_old"]
+
+    # Unique in new sheet → keep new values
+    if r["_merge"] == "left_only":
         return pd.Series({
-            'RTE': row['RTE_old'],
-            'RPE': row['RPE_old'],
-            'Recovery Plan': rp_old
+            "RTE":      r["RTE_new"],
+            "RPE":      r["RPE_new"],
+            "Recovery Plan": rp_new
         })
-    
-    if pd.notna(rp_new) and pd.isna(row['RTE_old']):
+    # Unique in old sheet → keep old values
+    if r["_merge"] == "right_only":
         return pd.Series({
-            'RTE': row['RTE_new'],
-            'RPE': row['RPE_new'],
-            'Recovery Plan': rp_new
+            "RTE":      r["RTE_old"],
+            "RPE":      r["RPE_old"],
+            "Recovery Plan": rp_old
         })
-    
+
+    # Matched in both → apply Recovery-Plan logic:
+    #  a) both blank → new
     if pd.isna(rp_new) and pd.isna(rp_old):
         return pd.Series({
-            'RTE': row['RTE_new'],
-            'RPE': row['RPE_new'],
-            'Recovery Plan': None
+            "RTE": r["RTE_new"],
+            "RPE": r["RPE_new"],
+            "Recovery Plan": pd.NaT
         })
-    
+    #  b) only new has date
     if pd.notna(rp_new) and pd.isna(rp_old):
         return pd.Series({
-            'RTE': row['RTE_new'],
-            'RPE': row['RPE_new'],
-            'Recovery Plan': rp_new
+            "RTE": r["RTE_new"],
+            "RPE": r["RPE_new"],
+            "Recovery Plan": rp_new
         })
-    
+    #  c) only old has date
     if pd.isna(rp_new) and pd.notna(rp_old):
         return pd.Series({
-            'RTE': row['RTE_old'],
-            'RPE': row['RPE_old'],
-            'Recovery Plan': rp_old
+            "RTE": r["RTE_old"],
+            "RPE": r["RPE_old"],
+            "Recovery Plan": rp_old
         })
-    
+    #  d) both have dates → pick latest
     if rp_new >= rp_old:
         return pd.Series({
-            'RTE': row['RTE_new'],
-            'RPE': row['RPE_new'],
-            'Recovery Plan': rp_new
+            "RTE": r["RTE_new"],
+            "RPE": r["RPE_new"],
+            "Recovery Plan": rp_new
         })
     else:
         return pd.Series({
-            'RTE': row['RTE_old'],
-            'RPE': row['RPE_old'],
-            'Recovery Plan': rp_old
+            "RTE": r["RTE_old"],
+            "RPE": r["RPE_old"],
+            "Recovery Plan": rp_old
         })
 
+# 5) Apply resolution and stitch results back into a final DataFrame
 resolved = merged.apply(resolve_row, axis=1)
 
-final_df = merged.copy()
-final_df['RTE'] = resolved['RTE']
-final_df['RPE'] = resolved['RPE']
-final_df['Recovery Plan'] = resolved['Recovery Plan']
+final = merged.copy()
+final["RTE"]            = resolved["RTE"]
+final["RPE"]            = resolved["RPE"]
+final["Recovery Plan"]  = resolved["Recovery Plan"]
 
-columns_to_keep = [col for col in final_df.columns if not (col.endswith('_new') or col.endswith('_old'))]
-final_df = final_df[columns_to_keep]
+# 6) Drop the helper columns (_merge and all _new/_old duplicates)
+drop_cols = [c for c in final.columns if c.endswith("_new") or c.endswith("_old")] + ["_merge"]
+final = final.drop(columns=drop_cols)
 
-final_df.to_excel("merged_output.xlsx", index=False)
-
+# 7) Save out
+final.to_excel("merged_output.xlsx", index=False)
 
 
 
