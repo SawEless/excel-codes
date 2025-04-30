@@ -1,5 +1,85 @@
 import pandas as pd
 
+new_df = pd.read_excel("new_sheet.xlsx")
+old_df = pd.read_excel("old_sheet.xlsx")
+
+new_df['Recovery Plan'] = pd.to_datetime(new_df['Recovery Plan'], errors='coerce')
+old_df['Recovery Plan'] = pd.to_datetime(old_df['Recovery Plan'], errors='coerce')
+
+merged = pd.merge(new_df, old_df, on=['Code', 'DR Scenerio'], suffixes=('_new', '_old'), how='outer')
+
+def resolve_row(row):
+    rp_new = row['Recovery Plan_new']
+    rp_old = row['Recovery Plan_old']
+    
+    if pd.isna(rp_new) and pd.notna(row['RTE_old']):
+        return pd.Series({
+            'RTE': row['RTE_old'],
+            'RPE': row['RPE_old'],
+            'Recovery Plan': rp_old
+        })
+    
+    if pd.notna(rp_new) and pd.isna(row['RTE_old']):
+        return pd.Series({
+            'RTE': row['RTE_new'],
+            'RPE': row['RPE_new'],
+            'Recovery Plan': rp_new
+        })
+    
+    if pd.isna(rp_new) and pd.isna(rp_old):
+        return pd.Series({
+            'RTE': row['RTE_new'],
+            'RPE': row['RPE_new'],
+            'Recovery Plan': None
+        })
+    
+    if pd.notna(rp_new) and pd.isna(rp_old):
+        return pd.Series({
+            'RTE': row['RTE_new'],
+            'RPE': row['RPE_new'],
+            'Recovery Plan': rp_new
+        })
+    
+    if pd.isna(rp_new) and pd.notna(rp_old):
+        return pd.Series({
+            'RTE': row['RTE_old'],
+            'RPE': row['RPE_old'],
+            'Recovery Plan': rp_old
+        })
+    
+    if rp_new >= rp_old:
+        return pd.Series({
+            'RTE': row['RTE_new'],
+            'RPE': row['RPE_new'],
+            'Recovery Plan': rp_new
+        })
+    else:
+        return pd.Series({
+            'RTE': row['RTE_old'],
+            'RPE': row['RPE_old'],
+            'Recovery Plan': rp_old
+        })
+
+resolved = merged.apply(resolve_row, axis=1)
+
+final_df = merged.copy()
+final_df['RTE'] = resolved['RTE']
+final_df['RPE'] = resolved['RPE']
+final_df['Recovery Plan'] = resolved['Recovery Plan']
+
+columns_to_keep = [col for col in final_df.columns if not (col.endswith('_new') or col.endswith('_old'))]
+final_df = final_df[columns_to_keep]
+
+final_df.to_excel("merged_output.xlsx", index=False)
+
+
+
+
+
+
+
+import pandas as pd
+
 # 1) Load the two sheets from one Excel file
 excel_path = "your_file.xlsx"
 new_df = pd.read_excel(excel_path, sheet_name="Plan")       # new sheet
